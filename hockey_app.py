@@ -2,6 +2,8 @@ import csv
 import pandas as pd
 import os
 
+
+
 # Output config
 INPUT_DIR = '../big_data_cup_2021/'
 OUTPUT_DIR = './output/'
@@ -23,7 +25,7 @@ os.makedirs(OUTPUT_DIR + BATCH_DIR, exist_ok=True)
 
 def main():
     # load in data, parse it in pandas df
-    fn = 'hackathon_nwhl.csv'
+    fn = 'hackathon_scouting.csv'
     df = initialize_data(fn)
 
 
@@ -32,29 +34,29 @@ def main():
     # Sample Usage
     #######################################################
     # select team of interest -- globals for lists of team names
-    team = womens_teams[0] # team = 'Erie Otters'
+    team = 'Olympic (Women) - Canada' # team = 'Erie Otters'
 
     # select game of interest (single int: 0 or list: [1,2] acceptable here)
     game_no = None 
 
     # select opposition of interest (list or None also accepted)
-    opposing =  None # 'Olympic (Women) - Olympic Athletes from Russia'
+    opposing =  'Olympic (Women) - Finland' # 'Olympic (Women) - Olympic Athletes from Russia'
 
     # header fields of interest to record in output file
     fields_of_interest = ['Event', 'Home Team', 'Away Team', 'game_date']
     
     # summary stat of interest (see Summary Statistics)
-    stat = 'zone-entry' 
+    stat = 'shots' 
     
     recorded_fields = list(set(preserve_fields[stat].copy() + fields_of_interest)) # processing..
-    processed = extract(
-        df, 
-        team, 
-        recorded_fields, 
-        opposing, 
-        game_no
-    ) # prrrrocessssssinnnnng......
-    print(summarize(processed, team, stat)) # blamo
+    # processed = extract(
+    #     df, 
+    #     team, 
+    #     recorded_fields, 
+    #     opposing, 
+    #     game_no
+    # ) # prrrrocessssssinnnnng......
+    # print(summarize(processed, team, stat)) # blamo
 
 
 
@@ -65,9 +67,9 @@ def main():
     #######################################################
     batch_analyze(
         df, 
-        nwhl_teams, 
-        ['play','faceoff', 'takeaway'], 
-        batch_name = 'nwhl'
+        scouting_teams, 
+        ['shots', 'faceoff', 'penalty', 'takeaway', 'puck-recovery', 'dump-in-n-out', 'zone-entry'], 
+        batch_name = 'scouting_shots_suite'
     )
 
 
@@ -84,6 +86,28 @@ def main():
 
 def summarize(pdf, team, stat):
     return summary_stats[stat](team, pdf)
+
+
+def shots(team, pdf):
+    stat = 'shots'
+    shot_types = event_types[stat]
+    counts = []
+
+    all_shots = pdf.loc[pdf['Event'] == shot_types[0]]
+    team_shots = all_shots.loc[all_shots['Team'] ==  team]
+    counts.append(len(team_shots.index))
+
+    all_goals = pdf.loc[pdf['Event'] == shot_types[1]]
+    team_goals = all_goals.loc[all_goals['Team'] ==  team]
+    counts.append(len(team_goals.index))
+
+
+    return {
+        'num_shots' : counts[0],
+        'num_goals' : counts[1],
+        'goal_perc' : counts[1] / sum(counts)
+    }
+
 
 
 def play(team, pdf):
@@ -176,7 +200,8 @@ def dump_in_n_out(team, pdf):
 
     return {
         'dumps_retained' : len(dumps_retained.index),
-        'dumps_lost' : len(dumps_lost.index)
+        'dumps_lost' : len(dumps_lost.index),
+        'dumps_ret_perc' : len(dumps_retained.index) / sum(len(dumps_retained.index) + len(dumps_lost.index))
     }  
 
 
@@ -213,7 +238,7 @@ preserve_fields = {
     'play': ['index', 'Event', 'Team'],
     'faceoff' : ['index', 'Event', 'Team'],
     'penalty' : ['index', 'Event', 'Team'],
-
+    'shots' : ['index', 'Event', 'Team'],
     'takeaway' : ['index', 'Event', 'Team'],
     'puck-recovery' : ['index', 'Event', 'Team'],
     'dump-in-n-out' : ['index', 'Event', 'Team', 'Detail 1'],
@@ -225,18 +250,20 @@ event_types = {
     'play': ['Play', 'Incomplete Play'],
     'faceoff' : ['Faceoff Win'],
     'penalty' : ['Penalty Taken'],
-
+    'shots' : ['Shot', 'Goal'],
     'takeaway' : ['Takeaway'],
     'puck-recovery' : ['Puck Recovery'],
     'dump-in-n-out' : ['Dump In/Out'],
     'zone-entry': ['Zone Entry']
 }
 
+
+
 summary_stats = {
     'play': play,
     'faceoff' : faceoff,
     'penalty' : penalty,
-
+    'shots' : shots,
     'takeaway' : takeaway,
     'puck-recovery' : puck_recovery,
     'dump-in-n-out' : dump_in_n_out,
