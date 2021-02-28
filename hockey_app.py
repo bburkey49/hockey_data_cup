@@ -201,7 +201,7 @@ def dump_in_n_out(team, pdf):
     return {
         'dumps_retained' : len(dumps_retained.index),
         'dumps_lost' : len(dumps_lost.index),
-        'dumps_ret_perc' : len(dumps_retained.index) / sum(len(dumps_retained.index) + len(dumps_lost.index))
+        'dumps_ret_perc' : len(dumps_retained.index) / len(dumps_retained.index) + len(dumps_lost.index)
     }  
 
 
